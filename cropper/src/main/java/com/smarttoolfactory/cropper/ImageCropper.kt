@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,11 +60,11 @@ fun ImageCropper(
     cropProperties: CropProperties,
     filterQuality: FilterQuality = DrawScope.DefaultFilterQuality,
     crop: Boolean = false,
-    hasChanges: MutableState<Boolean> = remember { mutableStateOf(false) },
     backgroundColor: Color = Color.Black,
     onCropStart: () -> Unit,
     onCropSuccess: (ImageBitmap) -> Unit,
     onDrawGrid: (DrawScope.(rect: Rect, strokeWidth: Float, color: Color) -> Unit)? = null,
+    onImageChange: (hasChanges: Boolean) -> Unit = { _ -> },
 ) {
 
     ImageWithConstraints(
@@ -140,7 +139,7 @@ fun ImageCropper(
             }
         }
 
-        val pressedStateColor = remember(cropStyle.backgroundColor){
+        val pressedStateColor = remember(cropStyle.backgroundColor) {
             cropStyle.backgroundColor
                 .copy(cropStyle.backgroundColor.alpha * .7f)
         }
@@ -150,9 +149,17 @@ fun ImageCropper(
             targetValue = if (isHandleTouched) pressedStateColor else cropStyle.backgroundColor
         )
 
-        hasChanges.value = cropState.pan != Offset(0F, 0F) ||
-            cropState.rotation != 0f ||
-            cropState.zoom != 1f
+        LaunchedEffect(
+            key1 = cropState.pan,
+            key2 = cropState.rotation,
+            key3 = cropState.zoom
+        ) {
+            onImageChange(
+                cropState.pan != Offset(0F, 0F) ||
+                    cropState.rotation != 0f ||
+                    cropState.zoom != 1f
+            )
+        }
 
         // Crops image when user invokes crop operation
         Crop(
